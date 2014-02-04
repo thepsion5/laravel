@@ -21,7 +21,7 @@ class AuthorExistsSpec extends AbstractSpec
         return $satisfied;
     }
 }
-
+````
 
 This specification contains the business logic for creating and saving a new `Post` instance. It's a composite requiring all three
 child specifications be true before it is satisfied.
