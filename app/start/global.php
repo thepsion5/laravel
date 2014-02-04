@@ -79,3 +79,6 @@ App::down(function()
 */
 
 require app_path().'/filters.php';
+
+App::bind('Acme\Post\PostRepositoryInterface', 'Acme\Post\DbPostRepository');
+App::bind('Acme\Author\AuthorRepositoryInterface', 'Acme\Author\DbAuthorRepository');

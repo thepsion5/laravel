@@ -1,21 +1,61 @@
-## Laravel PHP Framework
+## Implementing the Specifiation Design Pattern in Laravel
 
-[![Latest Stable Version](https://poser.pugx.org/laravel/framework/version.png)](https://packagist.org/packages/laravel/framework) [![Total Downloads](https://poser.pugx.org/laravel/framework/d/total.png)](https://packagist.org/packages/laravel/framework) [![Build Status](https://travis-ci.org/laravel/framework.png)](https://travis-ci.org/laravel/framework) [![License](https://poser.pugx.org/laravel/framework/license.png)](https://packagist.org/packages/laravel/framework) 
+I've been pondering how it might be possible to separate business logic relating to form validation and decided to experiment with the idea of using the [Specifiation Design Pattern](http://en.wikipedia.org/wiki/Specification_pattern). Specifications can actually be used for both validation and data lookup, but in this particular instance I'm limiting the scope of what I'm trying to accomplish to validation.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Laravel attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as authentication, routing, sessions, and caching.
+## Example
 
-Laravel aims to make the development process a pleasing one for the developer without sacrificing application functionality. Happy developers make the best code. To this end, we've attempted to combine the very best of what we have seen in other web frameworks, including frameworks implemented in other languages, such as Ruby on Rails, ASP.NET MVC, and Sinatra.
+This is a simple specification that checks that the provided Author ID corresponds to an existing author.
+````
+class AuthorExistsSpec extends AbstractSpec
+{
+    /* snip */
+    public function isSatisfiedBy($candidate)
+    {
+        $satisfied = true;
+        $author = $this->authorRepo->findById($candidate->author_id);
+        if($author->count() < 1) {
+            $satisfied = false;
+            $this->addMessage('author_id', 'Unable to find the Author with the provided ID.');
+        }
+        
+        return $satisfied;
+    }
+}
 
-Laravel is accessible, yet powerful, providing powerful tools needed for large, robust applications. A superb inversion of control container, expressive migration system, and tightly integrated unit testing support give you the tools you need to build any application with which you are tasked.
 
-## Official Documentation
+This specification contains the business logic for creating and saving a new `Post` instance. It's a composite requiring all three
+child specifications be true before it is satisfied.
+````
+class SuitableForCreationSpec extends AndSpec
+{
+    public function __construct()
+    {
+        $this->with(new AuthorExistsSpec);
+        $this->with(new RequiredDataPresentSpec);
+        $this->with(new SlugIsUniqueSpec)
+    }
+}
+````
 
-Documentation for the entire framework can be found on the [Laravel website](http://laravel.com/docs).
+A repository would check agains this specification during creation:
+````
+class DBPostRepository
+{
+/* snip */
+public function create(array $data)
+{
+    $creatable = new Spec\SuitableForCreationSpec();
+    $post = new Post();
+    $post->fill($data);
+    if($spec->isSatisfiedBy($post)) {
+        $post->save();
+    } else {
+        $this->handleValidationFaliure($post, $spec->messages())
+    }
+    return $post;
+}
+````
 
-### Contributing To Laravel
+##See Also
 
-**All issues and pull requests should be filed on the [laravel/framework](http://github.com/laravel/framework) repository.**
-
-### License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
+http://www.martinfowler.com/apsupp/spec.pdf
