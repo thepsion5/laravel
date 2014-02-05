@@ -25,7 +25,7 @@ abstract class AbstractValidationSpec extends AbstractSpec
         if(!$passed) {
             $this->messages = $validator->messages();
         } else {
-            $this->clearErrors();
+            $this->clearMessages();
         }
         return $passed;
     }
